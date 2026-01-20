@@ -165,7 +165,7 @@ function getPct(){
 }
 
 function colorByPct(p){
-  if(p>=99.5) return "#22c55e";
+  if(p>=97) return "#22c55e";
   if(p>=50) return "#eab308";
   return "#ef4444";
 }
