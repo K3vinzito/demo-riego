@@ -1,17 +1,15 @@
-// app.js
+// app.js – DEMO AGROSOL
 let map;
 let haciendaActual = null;
 
+let haciendaLayer = L.layerGroup();
 let lotesLayer = L.layerGroup();
 let llavesLayer = L.layerGroup();
-let trabajoLayer = L.featureGroup(); // aquí quedan las zonas trabajadas
+let trabajoLayer = L.featureGroup();
 
-let selectedLote = null; // {id, nombre, feature, leafletLayer}
-let drawControl = null;
+let selectedLote = null;
 let drawHandler = null;
-
-// Guardamos por lote: union de polígonos trabajados
-const workState = new Map(); // loteId -> { unionFeature: GeoJSON Feature<Polygon|MultiPolygon>, areaHa: number }
+const workState = new Map();
 
 const elSelLote = document.getElementById("selLote");
 const elAreaLote = document.getElementById("areaLote");
@@ -24,309 +22,169 @@ const haciendaSelect = document.getElementById("haciendaSelect");
 
 init();
 
+/* ================= INIT ================= */
+
 function init(){
   initMap();
   initUI();
   loadHaciendas();
-  setHacienda(window.DEMO_DATA.haciendas[0].id);
+  setHacienda(DEMO_DATA.haciendas[0].id);
 }
 
 function initMap(){
-  map = L.map('map', {
-    zoomControl: true,
-    preferCanvas: true
-  });
+  map = L.map("map");
 
-  // Satelital (Esri World Imagery)
   L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    {
-      attribution: "Tiles © Esri"
-    }
+    { attribution:"© Esri" }
   ).addTo(map);
 
+  haciendaLayer.addTo(map);
   lotesLayer.addTo(map);
-  llavesLayer.addTo(map);
   trabajoLayer.addTo(map);
-
-  // Un look más “pro”
-  map.attributionControl.setPrefix("");
+  llavesLayer.addTo(map);
 }
 
-function initUI(){
-  btnAddWork.addEventListener("click", startDrawWork);
-  btnCancel.addEventListener("click", cancelDraw);
+/* ================= UI ================= */
 
-  haciendaSelect.addEventListener("change", (e) => {
-    setHacienda(e.target.value);
-  });
+function initUI(){
+  btnAddWork.onclick = startDrawWork;
+  btnCancel.onclick = cancelDraw;
+  haciendaSelect.onchange = e => setHacienda(e.target.value);
 }
 
 function loadHaciendas(){
   haciendaSelect.innerHTML = "";
-  for(const h of window.DEMO_DATA.haciendas){
-    const opt = document.createElement("option");
-    opt.value = h.id;
-    opt.textContent = h.nombre;
-    haciendaSelect.appendChild(opt);
-  }
+  DEMO_DATA.haciendas.forEach(h=>{
+    const o=document.createElement("option");
+    o.value=h.id; o.textContent=h.nombre;
+    haciendaSelect.appendChild(o);
+  });
 }
 
-function setHacienda(haciendaId){
-  haciendaActual = window.DEMO_DATA.haciendas.find(h => h.id === haciendaId);
-  haciendaSelect.value = haciendaId;
+/* ================= HACIENDA ================= */
 
-  // limpiar capas
+function setHacienda(id){
+  haciendaActual = DEMO_DATA.haciendas.find(h=>h.id===id);
+  haciendaSelect.value=id;
+
+  haciendaLayer.clearLayers();
   lotesLayer.clearLayers();
-  llavesLayer.clearLayers();
   trabajoLayer.clearLayers();
-  selectedLote = null;
-  btnAddWork.disabled = true;
-  btnCancel.disabled = true;
+  llavesLayer.clearLayers();
+  workState.clear();
+  selectedLote=null;
   resetPanel();
 
-  // centrar mapa
-  map.setView([haciendaActual.center.lat, haciendaActual.center.lng], haciendaActual.zoom);
+  map.setView([haciendaActual.center.lat,haciendaActual.center.lng],haciendaActual.zoom);
 
-  // cargar lotes
-  (haciendaActual.lotes || []).forEach(l => addLoteToMap(l));
+  // borde hacienda
+  if(haciendaActual.haciendaBorder){
+    const b = L.geoJSON(haciendaActual.haciendaBorder,{
+      style:{
+        color:"#38bdf8",
+        weight:4,
+        fillOpacity:0
+      }
+    }).addTo(haciendaLayer);
 
-  // cargar llaves
-  (haciendaActual.llaves || []).forEach(k => addLlaveToMap(k));
+    map.fitBounds(b.getBounds(),{padding:[20,20]});
+  }
+
+  haciendaActual.lotes.forEach(addLoteToMap);
 }
 
-function addLoteToMap(lote){
-  const layer = L.geoJSON(lote.polygon, {
-    style: {
-      color: "rgba(255,255,255,.75)",
-      weight: 2,
-      fillOpacity: 0 // IMPORTANTE: lote sin pintar
-    }
-  });
+/* ================= LOTES ================= */
 
-  layer.on("click", (e) => {
-    selectLote(lote, layer);
-  });
+function addLoteToMap(lote){
+  const layer=L.geoJSON(lote.polygon,{
+    style:{color:"rgba(255,255,255,.75)",weight:2,fillOpacity:0}
+  }).on("click",()=>selectLote(lote,layer));
 
   layer.addTo(lotesLayer);
 }
 
-function selectLote(lote, layer){
-  // reset estilo a todos
-  lotesLayer.eachLayer(l => {
-    try { l.setStyle({ color:"rgba(255,255,255,.75)", weight:2 }); } catch {}
+function selectLote(lote,layer){
+  lotesLayer.eachLayer(l=>{
+    try{l.setStyle({color:"rgba(255,255,255,.75)",weight:2});}catch{}
   });
 
-  // resaltar seleccionado
-  try { layer.setStyle({ color:"rgba(125,211,252,.95)", weight:3 }); } catch {}
-
-  selectedLote = {
-    id: lote.id,
-    nombre: lote.nombre,
-    feature: lote.polygon,       // GeoJSON
-    leafletLayer: layer
-  };
-
-  btnAddWork.disabled = false;
-  updatePanelForSelected();
-  showLotePopup();
+  layer.setStyle({color:"rgba(125,211,252,.95)",weight:3});
+  selectedLote={id:lote.id,nombre:lote.nombre,feature:lote.polygon};
+  btnAddWork.disabled=false;
+  updatePanel();
+  showPopup();
 }
 
-function addLlaveToMap(llave){
-  // Marcador “pro” simple (círculo)
-  const marker = L.circleMarker([llave.lat, llave.lng], {
-    radius: 7,
-    color: "rgba(59,130,246,.95)",
-    weight: 2,
-    fillColor: "rgba(59,130,246,.35)",
-    fillOpacity: 1
-  });
-
-  marker.bindPopup(`
-    <b>${escapeHtml(llave.nombre)}</b><br/>
-    Llave de riego
-  `);
-
-  marker.addTo(llavesLayer);
-}
+/* ================= TRABAJO ================= */
 
 function startDrawWork(){
   if(!selectedLote) return;
+  btnAddWork.disabled=true;
+  btnCancel.disabled=false;
 
-  btnAddWork.disabled = true;
-  btnCancel.disabled = false;
-
-  // Activar dibujo de polígono
-  if(drawHandler) drawHandler.disable();
-
-  drawHandler = new L.Draw.Polygon(map, {
-    allowIntersection: false,
-    showArea: false,
-    shapeOptions: {
-      color: "rgba(234,179,8,.95)",
-      weight: 2
-    }
-  });
-
+  drawHandler=new L.Draw.Polygon(map,{allowIntersection:false});
   drawHandler.enable();
 
-  map.once(L.Draw.Event.CREATED, (evt) => {
-    const drawnLayer = evt.layer;              // Leaflet layer
-    const drawnGeo = drawnLayer.toGeoJSON();   // GeoJSON
+  map.once(L.Draw.Event.CREATED,e=>{
+    const clipped=turf.intersect(e.layer.toGeoJSON(),selectedLote.feature);
+    if(!clipped){ alert("Dibuja dentro del lote"); cancelDraw(); return; }
 
-    // Recortar al lote seleccionado (si se sale, se recorta)
-    const clipped = clipToLote(drawnGeo, selectedLote.feature);
+    const prev=workState.get(selectedLote.id);
+    const union=prev?turf.union(prev,clipped):clipped;
+    workState.set(selectedLote.id,union);
 
-    if(!clipped){
-      alert("La zona dibujada no cae dentro del lote. Intenta de nuevo.");
-      cancelDraw();
-      return;
-    }
-
-    // Guardar/actualizar unión de trabajo del lote
-    const newUnion = mergeWork(selectedLote.id, clipped);
-
-    // Dibujar la zona resultante (la zona que se trabajó EXACTA)
-    // Nota: dibujamos SOLO la zona nueva recortada (no toda la unión), para que vea lo que hizo.
-    const color = colorByPercent(getWorkedPercent(selectedLote.id));
-    const painted = L.geoJSON(clipped, {
-      style: {
-        color: "rgba(255,255,255,.15)",
-        weight: 1,
-        fillColor: color,
-        fillOpacity: 0.45
+    const pct=getPct();
+    L.geoJSON(clipped,{
+      style:{
+        fillColor:colorByPct(pct),
+        fillOpacity:.45,
+        color:"#fff",
+        weight:1
       }
-    });
-    painted.addTo(trabajoLayer);
+    }).addTo(trabajoLayer);
 
-    // Actualizar UI
-    updatePanelForSelected();
-    showLotePopup();
-
+    updatePanel();
+    showPopup();
     cancelDraw();
   });
 }
 
 function cancelDraw(){
-  if(drawHandler){
-    try { drawHandler.disable(); } catch {}
-    drawHandler = null;
-  }
-  btnCancel.disabled = true;
-  btnAddWork.disabled = !selectedLote;
+  if(drawHandler) drawHandler.disable();
+  btnCancel.disabled=true;
+  btnAddWork.disabled=!selectedLote;
 }
 
-function clipToLote(drawnGeo, loteGeo){
-  try{
-    // turf.intersect requiere Polygons.
-    const a = drawnGeo;
-    const b = loteGeo;
+/* ================= UTIL ================= */
 
-    const clipped = turf.intersect(a, b);
-    return clipped || null;
-  }catch(err){
-    return null;
-  }
+function getPct(){
+  const loteA=turf.area(selectedLote.feature);
+  const trab=turf.area(workState.get(selectedLote.id));
+  return Math.min(100,(trab/loteA)*100);
 }
 
-function mergeWork(loteId, newWorkFeature){
-  const prev = workState.get(loteId);
-
-  // si es la primera vez
-  if(!prev){
-    const areaHa = sqmToHa(turf.area(newWorkFeature));
-    workState.set(loteId, { unionFeature: newWorkFeature, areaHa });
-    return newWorkFeature;
-  }
-
-  // unir (para evitar doble conteo en áreas superpuestas)
-  let union = prev.unionFeature;
-  try{
-    union = turf.union(union, newWorkFeature);
-  }catch{
-    // fallback si union falla: mantenemos el anterior y sumamos área simple
-    // (en demo rara vez falla si polígonos no son raros)
-  }
-
-  const areaHa = sqmToHa(turf.area(union));
-  workState.set(loteId, { unionFeature: union, areaHa });
-  return union;
+function colorByPct(p){
+  if(p>=99.5) return "#22c55e";
+  if(p>=50) return "#eab308";
+  return "#ef4444";
 }
 
-function getLoteAreaHa(){
-  if(!selectedLote) return 0;
-  return sqmToHa(turf.area(selectedLote.feature));
-}
-
-function getWorkedAreaHa(loteId){
-  const st = workState.get(loteId);
-  return st ? st.areaHa : 0;
-}
-
-function getWorkedPercent(loteId){
-  const loteArea = getLoteAreaHa();
-  if(loteArea <= 0) return 0;
-  const worked = getWorkedAreaHa(loteId);
-  return Math.max(0, Math.min(100, (worked / loteArea) * 100));
-}
-
-function colorByPercent(pct){
-  if(pct >= 99.5) return "rgba(34,197,94,1)";     // verde
-  if(pct >= 50)   return "rgba(234,179,8,1)";     // amarillo
-  return "rgba(239,68,68,1)";                     // rojo
-}
-
-function updatePanelForSelected(){
-  if(!selectedLote) return;
-
-  const aLote = getLoteAreaHa();
-  const aTrab = getWorkedAreaHa(selectedLote.id);
-  const pct = getWorkedPercent(selectedLote.id);
-
-  elSelLote.textContent = `${selectedLote.nombre} (${selectedLote.id})`;
-  elAreaLote.textContent = aLote ? aLote.toFixed(2) : "—";
-  elAreaTrab.textContent = aTrab ? aTrab.toFixed(2) : "0.00";
-  elPctTrab.textContent  = `${pct.toFixed(0)}%`;
+function updatePanel(){
+  const pct=getPct();
+  elSelLote.textContent=selectedLote.nombre;
+  elPctTrab.textContent=pct.toFixed(0)+"%";
 }
 
 function resetPanel(){
-  elSelLote.textContent = "—";
-  elAreaLote.textContent = "—";
-  elAreaTrab.textContent = "—";
-  elPctTrab.textContent = "—";
+  elSelLote.textContent="—";
+  elPctTrab.textContent="—";
 }
 
-function showLotePopup(){
-  if(!selectedLote) return;
-
-  const pct = getWorkedPercent(selectedLote.id);
-  const statusColor = colorByPercent(pct);
-
-  const html = `
-    <div style="min-width:180px">
-      <div style="font-weight:700;margin-bottom:6px">${escapeHtml(selectedLote.nombre)}</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:10px;height:10px;border-radius:999px;background:${statusColor};display:inline-block"></span>
-        <span><b>${pct.toFixed(0)}%</b> trabajado</span>
-      </div>
-      <div style="font-size:12px;opacity:.8;margin-top:6px">
-        Toca “Añadir trabajo” y dibuja dentro del lote
-      </div>
-    </div>
-  `;
-
-  // popup en el centro del lote
-  const centroid = turf.centroid(selectedLote.feature).geometry.coordinates; // [lng,lat]
-  L.popup({ closeButton: true })
-    .setLatLng([centroid[1], centroid[0]])
-    .setContent(html)
-    .openOn(map);
-}
-
-function sqmToHa(sqm){ return sqm / 10000; }
-
-function escapeHtml(str){
-  return String(str).replace(/[&<>"']/g, s => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
-  }[s]));
+function showPopup(){
+  const c=turf.centroid(selectedLote.feature).geometry.coordinates;
+  L.popup()
+   .setLatLng([c[1],c[0]])
+   .setContent(`<b>${selectedLote.nombre}</b><br>${getPct().toFixed(0)}% trabajado`)
+   .openOn(map);
 }
