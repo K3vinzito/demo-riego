@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Demo Control de Riego</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+  <!-- Leaflet Draw -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
+
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="dot"></div>
+      <div>
+        <div class="title">Control de Riego</div>
+        <div class="subtitle">Demo satelital · Lotes · Llaves · Trabajo por zonas</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <label class="field">
+        <span>Hacienda</span>
+        <select id="haciendaSelect"></select>
+      </label>
+
+      <button id="btnAddWork" class="btn primary" disabled>
+        + Añadir trabajo (dibujar)
+      </button>
+
+      <button id="btnCancel" class="btn" disabled>
+        Cancelar
+      </button>
+    </div>
+  </header>
+
+  <main class="main">
+    <div id="map"></div>
+
+    <aside class="panel">
+      <div class="panel-title">Detalle</div>
+
+      <div class="card">
+        <div class="kv">
+          <div class="k">Lote seleccionado</div>
+          <div class="v" id="selLote">—</div>
+        </div>
+        <div class="kv">
+          <div class="k">Área lote (ha)</div>
+          <div class="v" id="areaLote">—</div>
+        </div>
+        <div class="kv">
+          <div class="k">Área trabajada (ha)</div>
+          <div class="v" id="areaTrab">—</div>
+        </div>
+        <div class="kv">
+          <div class="k">% trabajado</div>
+          <div class="v" id="pctTrab">—</div>
+        </div>
+        <div class="hint">
+          Tip: toca un lote para seleccionarlo. Luego presiona <b>“Añadir trabajo”</b> y dibuja la zona trabajada dentro del lote.
+        </div>
+      </div>
+
+      <div class="card small">
+        <div class="legend-title">Semáforo</div>
+        <div class="legend">
+          <span class="pill green">100%</span>
+          <span class="pill yellow">50%–99%</span>
+          <span class="pill red">&lt; 50%</span>
+        </div>
+        <div class="note">
+          Los lotes se mantienen sin relleno. Solo se pinta la zona trabajada.
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- JS libs -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+  <!-- Turf (áreas, recortes, uniones) -->
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+
+  <script src="./data.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
