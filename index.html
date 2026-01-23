@@ -1,18 +1,20 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Demo Control de Riego</title>
 
   <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <!-- Leaflet Draw -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 
   <link rel="stylesheet" href="./styles.css" />
 </head>
+
 <body>
 
   <!-- ================= TOP BAR ================= -->
@@ -40,9 +42,11 @@
       </button>
 
       <!-- 🔑 NUEVO: botón LLAVES -->
-      <button id="btnToggleLlaves" class="btn ghost">
-        🔑 Llaves
+      <button id="btnToggleLlaves" class="btn ghost btn-llaves">
+        <img src="./aspersor.png" alt="Llaves" />
+        Llaves
       </button>
+
     </div>
   </header>
 
@@ -75,7 +79,7 @@
         </div>
 
         <div class="hint">
-          Toca un lote para ver su detalle.  
+          Toca un lote para ver su detalle.
           Luego presiona <b>“Añadir trabajo”</b> y dibuja la zona trabajada.
         </div>
       </div>
@@ -89,7 +93,7 @@
           <span class="pill red">&lt; 50%</span>
         </div>
         <div class="note">
-          Los lotes se mantienen sin relleno.  
+          Los lotes se mantienen sin relleno.
           Solo se pinta la zona trabajada.
         </div>
       </div>
@@ -135,4 +139,5 @@
   <script src="./app.js"></script>
 
 </body>
+
 </html>

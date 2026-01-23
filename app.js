@@ -64,7 +64,6 @@ function initMap(){
   trabajoLayer.addTo(map);
   llavesLayer.addTo(map);
 
-  // UX: sin prefijo feo
   if(map.attributionControl) map.attributionControl.setPrefix("");
 }
 
@@ -78,17 +77,8 @@ function initUI(){
   if(btnToggleLlaves){
     btnToggleLlaves.onclick = () => {
       llavesVisibles = !llavesVisibles;
-      if(llavesVisibles){
-        llavesLayer.addTo(map);
-        btnToggleLlaves.classList.add("active");
-      }else{
-        map.removeLayer(llavesLayer);
-        btnToggleLlaves.classList.remove("active");
-      }
+      llavesVisibles ? llavesLayer.addTo(map) : map.removeLayer(llavesLayer);
     };
-
-    // estado inicial
-    if(llavesVisibles) btnToggleLlaves.classList.add("active");
   }
 }
 
@@ -108,7 +98,6 @@ function setHacienda(id){
   haciendaActual = DEMO_DATA.haciendas.find(h=>h.id===id);
   haciendaSelect.value=id;
 
-  // limpiar
   haciendaLayer.clearLayers();
   lotesLayer.clearLayers();
   trabajoLayer.clearLayers();
@@ -118,35 +107,22 @@ function setHacienda(id){
   resetPanel();
   hideLlaveCard();
 
-  // default view (por si no hay borde)
   map.setView([haciendaActual.center.lat, haciendaActual.center.lng], haciendaActual.zoom || 16);
 
-  // BORDE HACIENDA + AJUSTE AUTOMÁTICO (clave para móvil)
   if(haciendaActual.haciendaBorder){
     const b = L.geoJSON(haciendaActual.haciendaBorder,{
       style:{ color:"#38bdf8", weight:4, fillOpacity:0 }
     }).addTo(haciendaLayer);
 
     map.fitBounds(b.getBounds(),{ padding:[20,20] });
-
-    // Importantísimo para que en móvil no “cargue mal”
-    setTimeout(()=> map.invalidateSize(true), 200);
-  } else {
-    setTimeout(()=> map.invalidateSize(true), 200);
   }
 
-  // cargar lotes
-  (haciendaActual.lotes || []).forEach(addLoteToMap);
+  setTimeout(()=>map.invalidateSize(true),200);
 
-  // cargar llaves (según toggle)
-  (haciendaActual.llaves || []).forEach(addLlaveToMap);
-  if(!llavesVisibles){
-    try{ map.removeLayer(llavesLayer); }catch{}
-    if(btnToggleLlaves) btnToggleLlaves.classList.remove("active");
-  }else{
-    llavesLayer.addTo(map);
-    if(btnToggleLlaves) btnToggleLlaves.classList.add("active");
-  }
+  haciendaActual.lotes.forEach(addLoteToMap);
+  haciendaActual.llaves.forEach(addLlaveToMap);
+
+  if(!llavesVisibles) map.removeLayer(llavesLayer);
 }
 
 /* ================= LOTES ================= */
@@ -156,23 +132,21 @@ function addLoteToMap(lote){
     style:{ color:"rgba(255,255,255,.75)", weight:2, fillOpacity:0 }
   });
 
-  layer.on("click",()=> selectLote(lote, layer));
+  layer.on("click",()=>selectLote(lote,layer));
   layer.addTo(lotesLayer);
 }
 
 function selectLote(lote, layer){
-  // ocultar detalle de llave cuando seleccionas un lote
   hideLlaveCard();
 
   lotesLayer.eachLayer(l=>{
-    try{ l.setStyle({color:"rgba(255,255,255,.75)", weight:2}); }catch{}
+    try{l.setStyle({color:"rgba(255,255,255,.75)",weight:2});}catch{}
   });
 
-  try{ layer.setStyle({color:"rgba(125,211,252,.95)", weight:3}); }catch{}
+  layer.setStyle({color:"rgba(125,211,252,.95)",weight:3});
+  selectedLote={ id:lote.id, nombre:lote.nombre, feature:lote.polygon };
 
-  selectedLote = { id:lote.id, nombre:lote.nombre, feature:lote.polygon, layer };
-
-  btnAddWork.disabled = false;
+  btnAddWork.disabled=false;
   updatePanel();
   showPopup();
 }
@@ -182,46 +156,30 @@ function selectLote(lote, layer){
 function startDrawWork(){
   if(!selectedLote) return;
 
-  btnAddWork.disabled = true;
-  btnCancel.disabled = false;
+  btnAddWork.disabled=true;
+  btnCancel.disabled=false;
 
-  drawHandler = new L.Draw.Polygon(map, { allowIntersection:false });
+  drawHandler=new L.Draw.Polygon(map,{ allowIntersection:false });
   drawHandler.enable();
 
-  map.once(L.Draw.Event.CREATED, e => {
-    const drawn = e.layer.toGeoJSON();
-    const clipped = safeIntersect(drawn, selectedLote.feature);
+  map.once(L.Draw.Event.CREATED,e=>{
+    const clipped=turf.intersect(e.layer.toGeoJSON(),selectedLote.feature);
+    if(!clipped){ alert("Dibuja dentro del lote"); cancelDraw(); return; }
 
-    if(!clipped){
-      alert("Dibuja dentro del lote");
-      cancelDraw();
-      return;
-    }
+    const prev=workState.get(selectedLote.id);
+    const union=prev?turf.union(prev,clipped):clipped;
+    workState.set(selectedLote.id,union);
 
-    // union por lote
-    const prev = workState.get(selectedLote.id);
-    let union = clipped;
-    if(prev){
-      try{ union = turf.union(prev, clipped); }catch{ union = prev; }
-    }
-    workState.set(selectedLote.id, union);
-
-    // pintar SOLO lo recortado (lo que hizo el usuario)
-    const pct = getPct(selectedLote.id);
-    const painted = L.geoJSON(clipped, {
-      // 🔥 CLAVE: que NO sea interactivo para que el click pase al lote debajo
-      interactive: false,
+    L.geoJSON(clipped,{
+      interactive:false,
       style:{
-        fillColor: colorByPct(pct),
-        fillOpacity: .45,
-        color: "#fff",
-        weight: 1
+        fillColor:colorByPct(getPct(selectedLote.id)),
+        fillOpacity:.45,
+        color:"#fff",
+        weight:1
       }
-    });
+    }).addTo(trabajoLayer);
 
-    painted.addTo(trabajoLayer);
-
-    // traer bordes de lotes arriba para que se vean bien
     lotesLayer.bringToFront();
 
     updatePanel();
@@ -231,147 +189,72 @@ function startDrawWork(){
 }
 
 function cancelDraw(){
-  if(drawHandler){
-    try{ drawHandler.disable(); }catch{}
-  }
-  drawHandler = null;
-  btnCancel.disabled = true;
-  btnAddWork.disabled = !selectedLote;
+  if(drawHandler) drawHandler.disable();
+  drawHandler=null;
+  btnCancel.disabled=true;
+  btnAddWork.disabled=!selectedLote;
 }
 
 /* ================= LLAVES ================= */
 
-// Icono SVG inline (siempre carga, no depende de internet)
-function createValveIcon(){
-  const svg = `
-  <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 48 48">
-    <defs>
-      <filter id="s" x="-30%" y="-30%" width="160%" height="160%">
-        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,.55)"/>
-      </filter>
-    </defs>
-    <g filter="url(#s)">
-      <circle cx="24" cy="24" r="18" fill="rgba(125,211,252,.18)" stroke="rgba(125,211,252,.85)" stroke-width="2"/>
-      <path d="M16 22h16v4H16z" fill="rgba(125,211,252,.95)"/>
-      <circle cx="24" cy="24" r="6" fill="rgba(37,99,235,.95)"/>
-      <path d="M24 12c4 0 8 2 10 5" fill="none" stroke="rgba(37,99,235,.95)" stroke-width="2" stroke-linecap="round"/>
-    </g>
-  </svg>`.trim();
-
-  return L.divIcon({
-    className: "valve-icon",
-    html: svg,
-    iconSize: [34,34],
-    iconAnchor: [17,17],
-    popupAnchor: [0,-16]
-  });
-}
-
 function addLlaveToMap(llave){
-  const icon = createValveIcon();
-
-  const marker = L.marker([llave.lat, llave.lng], { icon });
-
-  marker.on("click", () => {
-    showLlaveDetalle(llave);
-
-    // centra suavemente al tocar
-    try{ map.panTo([llave.lat, llave.lng], { animate:true, duration:0.25 }); }catch{}
+  const icon = L.icon({
+    iconUrl:"./aspersor.png",
+    iconSize:[36,36],
+    iconAnchor:[18,18]
   });
 
-  marker.bindTooltip(escapeHtml(llave.nombre), { direction:"top", offset:[0,-10], opacity:0.9 });
-
-  marker.addTo(llavesLayer);
+  L.marker([llave.lat,llave.lng],{icon})
+    .on("click",()=>showLlaveDetalle(llave))
+    .addTo(llavesLayer);
 }
 
 function showLlaveDetalle(llave){
-  // NO tocar el panel de lote: usamos tarjeta dedicada
-  if(elLlaveCard){
-    elLlaveCard.style.display = "block";
-    elLlaveNombre.textContent = llave.nombre || "—";
-    elLlaveTipo.textContent = llave.tipo || "—";
-    elLlavePresion.textContent = llave.presion || "—";
-    elLlaveEstado.textContent = llave.estado || "—";
-    elLlaveObs.textContent = llave.observacion || "—";
-  }
+  elLlaveCard.style.display="block";
+  elLlaveNombre.textContent=llave.nombre;
+  elLlaveTipo.textContent=llave.tipo;
+  elLlavePresion.textContent=llave.presion;
+  elLlaveEstado.textContent=llave.estado;
+  elLlaveObs.textContent=llave.observacion;
 }
 
 function hideLlaveCard(){
-  if(elLlaveCard) elLlaveCard.style.display = "none";
+  if(elLlaveCard) elLlaveCard.style.display="none";
 }
 
-/* ================= UTIL (áreas / % / UI) ================= */
+/* ================= UTIL ================= */
 
-function safeIntersect(a,b){
-  try{
-    const r = turf.intersect(a,b);
-    return r || null;
-  }catch{
-    return null;
-  }
-}
-
-function sqmToHa(sqm){ return sqm / 10000; }
-
-function getLoteAreaHa(){
-  if(!selectedLote) return 0;
-  try{ return sqmToHa(turf.area(selectedLote.feature)); }catch{ return 0; }
-}
-
-function getWorkedAreaHa(loteId){
-  const feat = workState.get(loteId);
-  if(!feat) return 0;
-  try{ return sqmToHa(turf.area(feat)); }catch{ return 0; }
-}
-
-function getPct(loteId){
-  if(!selectedLote) return 0;
-  const loteA = getLoteAreaHa();
-  if(loteA <= 0) return 0;
-  const trabA = getWorkedAreaHa(loteId);
-  return Math.max(0, Math.min(100, (trabA / loteA) * 100));
+function getPct(id){
+  const loteA=turf.area(selectedLote.feature);
+  const trab=turf.area(workState.get(id)||{type:"FeatureCollection",features:[]});
+  return Math.min(100,(trab/loteA)*100);
 }
 
 function colorByPct(p){
-  if(p >= 99.5) return "#22c55e"; // verde
-  if(p >= 50)   return "#eab308"; // amarillo
-  return "#ef4444";               // rojo
+  if(p>=99.5) return "#22c55e";
+  if(p>=50) return "#eab308";
+  return "#ef4444";
 }
 
 function updatePanel(){
-  if(!selectedLote) return;
-
-  const loteHa = getLoteAreaHa();
-  const trabHa = getWorkedAreaHa(selectedLote.id);
-  const pct = getPct(selectedLote.id);
-
-  elSelLote.textContent = selectedLote.nombre;
-  elAreaLote.textContent = loteHa ? loteHa.toFixed(2) : "—";
-  elAreaTrab.textContent = trabHa ? trabHa.toFixed(2) : "0.00";
-  elPctTrab.textContent  = pct.toFixed(0) + "%";
+  const pct=getPct(selectedLote.id);
+  elSelLote.textContent=selectedLote.nombre;
+  elAreaLote.textContent="—";
+  elAreaTrab.textContent="—";
+  elPctTrab.textContent=pct.toFixed(0)+"%";
 }
 
 function resetPanel(){
-  elSelLote.textContent = "—";
-  elAreaLote.textContent = "—";
-  elAreaTrab.textContent = "—";
-  elPctTrab.textContent  = "—";
+  elSelLote.textContent="—";
+  elAreaLote.textContent="—";
+  elAreaTrab.textContent="—";
+  elPctTrab.textContent="—";
 }
 
 function showPopup(){
-  if(!selectedLote) return;
-
-  const pct = getPct(selectedLote.id);
-  const c = turf.centroid(selectedLote.feature).geometry.coordinates; // [lng,lat]
-
+  const c=turf.centroid(selectedLote.feature).geometry.coordinates;
   L.popup()
-    .setLatLng([c[1], c[0]])
-    .setContent(`<b>${escapeHtml(selectedLote.nombre)}</b><br>${pct.toFixed(0)}% trabajado`)
+    .setLatLng([c[1],c[0]])
+    .setContent(`<b>${selectedLote.nombre}</b><br>${getPct(selectedLote.id).toFixed(0)}% trabajado`)
     .openOn(map);
-}
-
-function escapeHtml(str){
-  return String(str).replace(/[&<>"']/g, s => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
-  }[s]));
 }
