@@ -14,6 +14,8 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
+
+  <!-- ================= TOP BAR ================= -->
   <header class="topbar">
     <div class="brand">
       <div class="dot"></div>
@@ -30,19 +32,28 @@
       </label>
 
       <button id="btnAddWork" class="btn primary" disabled>
-        + Añadir trabajo (dibujar)
+        + Añadir trabajo
       </button>
 
       <button id="btnCancel" class="btn" disabled>
         Cancelar
       </button>
+
+      <!-- 🔑 NUEVO: botón LLAVES -->
+      <button id="btnToggleLlaves" class="btn ghost">
+        🔑 Llaves
+      </button>
     </div>
   </header>
 
+  <!-- ================= MAIN ================= -->
   <main class="main">
     <div id="map"></div>
 
+    <!-- ================= PANEL DERECHO ================= -->
     <aside class="panel">
+
+      <!-- ====== DETALLE LOTE ====== -->
       <div class="panel-title">Detalle</div>
 
       <div class="card">
@@ -62,33 +73,66 @@
           <div class="k">% trabajado</div>
           <div class="v" id="pctTrab">—</div>
         </div>
+
         <div class="hint">
-          Tip: toca un lote para seleccionarlo. Luego presiona <b>“Añadir trabajo”</b> y dibuja la zona trabajada dentro del lote.
+          Toca un lote para ver su detalle.  
+          Luego presiona <b>“Añadir trabajo”</b> y dibuja la zona trabajada.
         </div>
       </div>
 
+      <!-- ====== SEMÁFORO ====== -->
       <div class="card small">
         <div class="legend-title">Semáforo</div>
         <div class="legend">
           <span class="pill green">100%</span>
-          <span class="pill yellow">50%–99%</span>
+          <span class="pill yellow">50–99%</span>
           <span class="pill red">&lt; 50%</span>
         </div>
         <div class="note">
-          Los lotes se mantienen sin relleno. Solo se pinta la zona trabajada.
+          Los lotes se mantienen sin relleno.  
+          Solo se pinta la zona trabajada.
         </div>
       </div>
+
+      <!-- ====== 🔑 NUEVO: DETALLE LLAVE ====== -->
+      <div class="card small" id="llaveDetalle" style="display:none;">
+        <div class="legend-title">🔑 Detalle de Llave</div>
+
+        <div class="kv">
+          <div class="k">Nombre</div>
+          <div class="v" id="llaveNombre">—</div>
+        </div>
+        <div class="kv">
+          <div class="k">Tipo</div>
+          <div class="v" id="llaveTipo">—</div>
+        </div>
+        <div class="kv">
+          <div class="k">Presión</div>
+          <div class="v" id="llavePresion">—</div>
+        </div>
+        <div class="kv">
+          <div class="k">Estado</div>
+          <div class="v" id="llaveEstado">—</div>
+        </div>
+        <div class="kv">
+          <div class="k">Observación</div>
+          <div class="v" id="llaveObs">—</div>
+        </div>
+      </div>
+
     </aside>
   </main>
 
-  <!-- JS libs -->
+  <!-- ================= JS ================= -->
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 
-  <!-- Turf (áreas, recortes, uniones) -->
+  <!-- Turf -->
   <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 
   <script src="./data.js"></script>
   <script src="./app.js"></script>
+
 </body>
 </html>

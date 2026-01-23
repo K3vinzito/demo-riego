@@ -1,5 +1,7 @@
 // data.js
-// DEMO AGROSOL – datos reales
+// DEMO AGROSOL – datos reales + llaves por lote (DEMO PRO)
+// Nota: las llaves son puntos de ejemplo (1 por lote) generados desde coordenadas del lote.
+// Luego reemplazas por ubicaciones reales.
 
 window.DEMO_DATA = {
   haciendas: [
@@ -83,7 +85,7 @@ window.DEMO_DATA = {
             [-80.62718384144237,-2.271934361754617],
             [-80.62753148665287,-2.271741972197809],
             [-80.62784162339636,-2.271752416769001]
-          ]]}}
+          ]]} }
         },
 
         /* LOTE 2 */
@@ -106,7 +108,7 @@ window.DEMO_DATA = {
             [-80.62653446042704,-2.271359754449946],
             [-80.62736556854996,-2.271728343213436],
             [-80.62696612122775,-2.272397446277612]
-          ]]}}
+          ]]} }
         },
 
         /* LOTE 3 */
@@ -123,7 +125,7 @@ window.DEMO_DATA = {
             [-80.62570490144294,-2.27684842451308],
             [-80.62630186567766,-2.276186527113261],
             [-80.62672726376802,-2.276862271238944]
-          ]]}}
+          ]]} }
         },
 
         /* LOTE 4 */
@@ -141,12 +143,54 @@ window.DEMO_DATA = {
             [-80.62496889979769,-2.272194990730749],
             [-80.62550655433434,-2.272169732154045],
             [-80.62543447316986,-2.273716282734178]
-          ]]}}
+          ]]} }
         }
       ],
 
-      // 🔵 LLAVES (ejemplo)
-      llaves: []
+      // 🔵 LLAVES (DEMO PRO) — 1 por lote (coordenadas tomadas de los lotes)
+      // Puedes cambiar "tipo/presion/estado/observacion" por datos reales después.
+      llaves: [
+        {
+          id: "K-L1",
+          nombre: "Llave Lote 1",
+          lat: -2.27400,
+          lng: -80.62725,
+          tipo: "Secundaria",
+          presion: "Media",
+          estado: "Operativa",
+          observacion: "Demo: ubicada dentro del Lote 1"
+        },
+        {
+          id: "K-L2",
+          nombre: "Llave Lote 2",
+          lat: -2.27335,
+          lng: -80.62635,
+          tipo: "Secundaria",
+          presion: "Media",
+          estado: "Operativa",
+          observacion: "Demo: ubicada dentro del Lote 2"
+        },
+        {
+          id: "K-L3",
+          nombre: "Llave Lote 3",
+          lat: -2.27740,
+          lng: -80.62545,
+          tipo: "Secundaria",
+          presion: "Baja",
+          estado: "Operativa",
+          observacion: "Demo: ubicada dentro del Lote 3"
+        },
+        {
+          id: "K-L4",
+          nombre: "Llave Lote 4",
+          lat: -2.27330,
+          lng: -80.62465,
+          tipo: "Secundaria",
+          presion: "Alta",
+          estado: "Operativa",
+          observacion: "Demo: ubicada dentro del Lote 4"
+        }
+      ]
     }
   ]
 };
