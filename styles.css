@@ -238,7 +238,6 @@ select {
     height: calc(100% - 58px);
   }
 
-  /* Panel flotante inferior tipo APP */
   .panel {
     position: fixed;
     bottom: 0;
@@ -265,6 +264,8 @@ select {
   }
 }
 
+/* ================= BOTÓN LLAVES ================= */
+
 .btn-llaves {
   display: flex;
   align-items: center;
@@ -275,4 +276,54 @@ select {
   width: 18px;
   height: 18px;
   filter: drop-shadow(0 0 2px rgba(0, 0, 0, .6));
+}
+
+/* =====================================================
+   🔑 ICONO LLAVES – ESCALA AUTOMÁTICA SEGÚN ZOOM
+   ===================================================== */
+
+.valve-icon {
+  transform-origin: center center;
+  transition: transform 0.15s ease-out;
+}
+
+/* Zoom muy lejos */
+.leaflet-zoom-0 .valve-icon,
+.leaflet-zoom-1 .valve-icon,
+.leaflet-zoom-2 .valve-icon {
+  transform: scale(0.45);
+}
+
+/* Zoom medio */
+.leaflet-zoom-3 .valve-icon,
+.leaflet-zoom-4 .valve-icon,
+.leaflet-zoom-5 .valve-icon {
+  transform: scale(0.6);
+}
+
+/* Zoom normal */
+.leaflet-zoom-6 .valve-icon,
+.leaflet-zoom-7 .valve-icon,
+.leaflet-zoom-8 .valve-icon {
+  transform: scale(0.8);
+}
+
+/* Zoom cercano */
+.leaflet-zoom-9 .valve-icon,
+.leaflet-zoom-10 .valve-icon,
+.leaflet-zoom-11 .valve-icon {
+  transform: scale(1);
+}
+
+/* Zoom muy cercano */
+.leaflet-zoom-12 .valve-icon,
+.leaflet-zoom-13 .valve-icon,
+.leaflet-zoom-14 .valve-icon,
+.leaflet-zoom-15 .valve-icon,
+.leaflet-zoom-16 .valve-icon,
+.leaflet-zoom-17 .valve-icon,
+.leaflet-zoom-18 .valve-icon,
+.leaflet-zoom-19 .valve-icon,
+.leaflet-zoom-20 .valve-icon {
+  transform: scale(1.2);
 }

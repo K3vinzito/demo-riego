@@ -154,7 +154,7 @@ window.DEMO_DATA = {
           id: "K-L1",
           nombre: "Llave Lote 1",
           lat: -2.27400,
-          lng: -80.62725,
+          lng: -80.62760,
           tipo: "Secundaria",
           presion: "Media",
           estado: "Operativa",
